@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meri Bus - By Anil Indora</title>
+    
+    <style>
+        /* --- START OF CSS --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none;
+        }
+        .app-container {
+            width: 375px; height: 812px; background-color: #ffffff; border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; position: relative; border: 5px solid #333;
+        }
+        .screen {
+            padding: 20px; height: 100%; display: none; flex-direction: column; box-sizing: border-box; animation: fadeIn 0.5s;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 24px; color: #333; margin: 0; }
+        .sub-header { color: #555; margin-top: 5px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        select, input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: linear-gradient(45deg, #4CAF50, #81C784); color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .language-options { display: flex; flex-direction: column; justify-content: center; gap: 15px; margin: 20px 0; }
+        .lang-btn { padding: 15px 30px; font-size: 18px; border: 2px solid #ddd; border-radius: 10px; background-color: #f9f9f9; cursor: pointer; }
+        .lang-btn.active { border-color: #4CAF50; background-color: #e8f5e9; font-weight: bold; }
+        .app-logo { width: 80px; height: 80px; border-radius: 20px; margin-bottom: 15px; }
+        .owner-name { position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; font-size: 14px; color: #888; }
+        .route-item { background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border-left: 5px solid #4CAF50; }
+        .route-name { font-weight: bold; font-size: 18px; }
+        .route-time { color: #555; font-size: 14px; margin-top: 5px; }
+
+        /* मैप स्क्रीन स्टाइलिंग */
+        #map-screen { padding: 0; position: relative; }
+        .map-header { padding: 15px; background-color: rgba(255, 255, 255, 0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: absolute; top: 0; left: 0; width: 100%; z-index: 20; box-sizing: border-box; }
+        .map-header h1 { font-size: 18px; }
+        .map-container { 
+            height: 100%; width: 100%; 
+            background-color: #ffffff; /* <<< बदलाव 1: बैकग्राउंड सफेद किया गया */ 
+            position: relative; overflow: hidden; display: flex; align-items: center;
+        }
+        #route-line { position: absolute; width: 6px; height: 76%; background: linear-gradient(to bottom, rgba(66, 133, 244, 0.8), rgba(51, 103, 214, 0.8)); left: 50%; top: 12%; border-radius: 3px; transform: translateX(-50%); }
+        .bus-icon { position: absolute; font-size: 30px; left: 50%; top: 12%; transition: top 2s linear; text-shadow: 0 2px 4px rgba(0,0,0,0.4); z-index: 10; transform: translateX(-50%); }
+        .stop { position: absolute; font-size: 10px; left: 50%; width: 12px; height: 12px; background-color: white; border: 3px solid #4285F4; border-radius: 50%; transform: translateX(-50%); z-index: 5; }
+        .stop-label { font-size: 12px; font-weight: bold; background: white; padding: 3px 6px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); position: absolute; left: 20px; top: -5px; white-space: nowrap; color: #333; }
+        #stop1 { top: 12%; } #stop2 { top: 25%; } #stop3 { top: 38%; } #stop4 { top: 50%; } #stop5 { top: 62%; } #stop6 { top: 75%; } #stop7 { top: 88%; }
+        .map-controls { position: absolute; top: 65px; right: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 20; display: flex; flex-direction: column; gap: 4px; }
+        .view-btn { background-color: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .view-btn.active { background-color: #4CAF50; color: white; border-color: #4CAF50; }
+        /* --- END OF CSS --- */
+    </style>
+</head>
+<body>
+    <div class="app-container">
+
+        <!-- स्क्रीन 0: भाषा चुनें -->
+        <div id="language-screen" class="screen active">
+            <div class="header">
+                <img src="https://assets.stickpng.com/images/580b57fcd9996e24bc43c513.png" alt="Meri Bus Logo" class="app-logo"> 
+                <h1 data-key="welcome_title">Meri Bus में आपका स्वागत है</h1>
+            </div>
+            <div class="language-options">
+                <button class="lang-btn" data-lang="hi" onclick="selectLanguage('hi')" data-key="hindi_lang">हिन्दी</button>
+                <button class="lang-btn" data-lang="en" onclick="selectLanguage('en')" data-key="english_lang">English</button>
+            </div>
+            <button class="btn" onclick="showScreen('state-screen')" data-key="continue_btn">आगे बढ़ें / Continue</button>
+            <p class="owner-name">Owner: Anil Indora</p>
+        </div>
+        
+        <!-- बाकी सभी ओरिजिनल स्क्रीन -->
+        <div id="state-screen" class="screen"><div class="header"><h1 data-key="state_title">राज्य चुनें</h1></div><div class="form-group"><label for="state" data-key="state_label">राज्य</label><select id="state"><option value="Rajasthan" data-key="rajasthan_option">राजस्थान</option></select></div><button class="btn" onclick="showScreen('district-screen')" data-key="next_btn">आगे</button></div>
+        <div id="district-screen" class="screen"><div class="header"><h1 data-key="district_title">ज़िला चुनें</h1></div><div class="form-group"><label for="district" data-key="district_label">ज़िला</label><select id="district"><option value="Sri Ganganagar" data-key="ganganagar_option">श्री गंगानगर</option></select></div><button class="btn" onclick="showScreen('tehsil-screen')" data-key="next_btn">आगे</button></div>
+        <div id="tehsil-screen" class="screen"><div class="header"><h1 data-key="tehsil_title">तहसील चुनें</h1></div><div class="form-group"><label for="tehsil" data-key="tehsil_label">तहसील</label><select id="tehsil"><option value="Anupgarh" data-key="anupgarh_option">अनूपगढ़</option></select></div><button class="btn" onclick="showScreen('search-screen')" data-key="next_btn">आगे</button></div>
+        <div id="search-screen" class="screen"><div class="header"><h1 data-key="find_bus_title">बस खोजें</h1></div><div class="form-group"><label for="from-stop" data-key="from_label">कहाँ से</label><input type="text" id="from-stop" data-placeholder-key="from_placeholder" value="अनूपगढ़"></div><div class="form-group"><label for="to-stop" data-key="to_label">कहाँ तक</label><input type="text" id="to-stop" data-placeholder-key="to_placeholder" value="नरवाली"></div><button class="btn" onclick="showScreen('route-list-screen')" data-key="find_buses_btn">बसें खोजें</button></div>
+        <div id="route-list-screen" class="screen"><div class="header"><h1>अनूपगढ़ ↔ नरवाली</h1><p class="sub-header" data-key="available_routes">उपलब्ध रूट</p></div><div class="route-item" onclick="selectRouteAndShowMap('route_anp_nrw')"><div class="route-name">अनूपगढ़ → नरवाली</div><div class="route-time" data-key="live_tracking_available">लाइव ट्रैकिंग उपलब्ध</div></div><div class="route-item" onclick="selectRouteAndShowMap('route_nrw_anp')"><div class="route-name">नरवाली → अनूपगढ़ (वापसी)</div><div class="route-time" data-key="live_tracking_available">लाइव ट्रैकिंग उपलब्ध</div></div></div>
+        <div id="map-screen" class="screen"><div class="map-header"><h1 data-key="live_tracking_title">लाइव ट्रैकिंग</h1></div><div class="map-container"><div class="map-controls"><button id="view-full" class="view-btn active" onclick="changeMapView('full')" data-key="view_full">पूरा विवरण</button><button id="view-route" class="view-btn" onclick="changeMapView('route')" data-key="view_route">रूट और बस</button><button id="view-bus" class="view-btn" onclick="changeMapView('bus')" data-key="view_bus">सिर्फ़ बस</button></div><div id="route-line"></div><div class="stop" id="stop1"><span class="stop-label" data-key="anupgarh_stop">अनूपगढ़</span></div><div class="stop" id="stop2"><span class="stop-label" data-key="ganesh_mandir_stop">गणेश मंदिर</span></div><div class="stop" id="stop3"><span class="stop-label" data-key="bypass_stop">बाईपास</span></div><div class="stop" id="stop4"><span class="stop-label" data-key="head_34_stop">34 हेड</span></div><div class="stop" id="stop5"><span class="stop-label" data-key="a11_stop">11A</span></div><div class="stop" id="stop6"><span class="stop-label" data-key="lm4_stop">4LM</span></div><div class="stop" id="stop7"><span class="stop-label" data-key="narwali_stop">नरवाली</span></div><div class="bus-icon">🚌</div></div></div>
+    </div>
+
+    <script>
+        // --- START OF JAVASCRIPT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE_URL = 'http://192.168.31.104:5000/api';
+            let trackingInterval = null, currentRouteId = null;
+            const busIcon = document.querySelector('.bus-icon');
+
+            // बदलाव 2: भाषा बदलने के लिए पूरा डिक्शनरी
+            const translations = {
+                hi: {
+                    welcome_title: 'Meri Bus में आपका स्वागत है', hindi_lang: 'हिन्दी', english_lang: 'English', continue_btn: 'आगे बढ़ें / Continue',
+                    state_title: 'राज्य चुनें', state_label: 'राज्य', rajasthan_option: 'राजस्थान', next_btn: 'आगे',
+                    district_title: 'ज़िला चुनें', district_label: 'ज़िला', ganganagar_option: 'श्री गंगानगर',
+                    tehsil_title: 'तहसील चुनें', tehsil_label: 'तहसील', anupgarh_option: 'अनूपगढ़',
+                    find_bus_title: 'बस खोजें', from_label: 'कहाँ से', to_label: 'कहाँ तक', from_placeholder: 'शुरुआती स्टॉप', to_placeholder: 'गंतव्य स्टॉप', find_buses_btn: 'बसें खोजें',
+                    available_routes: 'उपलब्ध रूट', live_tracking_available: 'लाइव ट्रैकिंग उपलब्ध',
+                    live_tracking_title: 'लाइव ट्रैकिंग', view_full: 'पूरा विवरण', view_route: 'रूट और बस', view_bus: 'सिर्फ़ बस',
+                    anupgarh_stop: 'अनूपगढ़', ganesh_mandir_stop: 'गणेश मंदिर', bypass_stop: 'बाईपास', head_34_stop: '34 हेड', a11_stop: '11A', lm4_stop: '4LM', narwali_stop: 'नरवाली'
+                },
+                en: {
+                    welcome_title: 'Welcome to Meri Bus', hindi_lang: 'हिन्दी', english_lang: 'English', continue_btn: 'Continue',
+                    state_title: 'Select State', state_label: 'State', rajasthan_option: 'Rajasthan', next_btn: 'Next',
+                    district_title: 'Select District', district_label: 'District', ganganagar_option: 'Sri Ganganagar',
+                    tehsil_title: 'Select Tehsil', tehsil_label: 'Tehsil', anupgarh_option: 'Anupgarh',
+                    find_bus_title: 'Find Bus', from_label: 'From', to_label: 'To', from_placeholder: 'Starting Stop', to_placeholder: 'Destination Stop', find_buses_btn: 'Find Buses',
+                    available_routes: 'Available Routes', live_tracking_available: 'Live Tracking Available',
+                    live_tracking_title: 'Live Tracking', view_full: 'Full View', view_route: 'Route & Bus', view_bus: 'Bus Only',
+                    anupgarh_stop: 'Anupgarh', ganesh_mandir_stop: 'Ganesh Mandir', bypass_stop: 'Bypass', head_34_stop: '34 Head', a11_stop: '11A', lm4_stop: '4LM', narwali_stop: 'Narwali'
+                }
+            };
+            
+            window.setLanguage = function(lang) {
+                document.querySelectorAll('[data-key]').forEach(el => {
+                    const key = el.dataset.key;
+                    if (translations[lang][key]) el.textContent = translations[lang][key];
+                });
+                document.querySelectorAll('[data-placeholder-key]').forEach(el => {
+                    const key = el.dataset.placeholderKey;
+                    if (translations[lang][key]) el.placeholder = translations[lang][key];
+                });
+                document.documentElement.lang = lang;
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector(`.lang-btn[data-lang="${lang}"]`).classList.add('active');
+            }
+            
+            window.selectLanguage = function(lang) {
+                setLanguage(lang);
+                // भाषा चुनते ही 'Continue' बटन का टेक्स्ट भी बदल दें
+                document.querySelector('.btn[onclick="showScreen(\'state-screen\')"]').textContent = translations[lang]['continue_btn'];
+            }
+
+            window.showScreen = function(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId)?.classList.add('active');
+                if (screenId !== 'map-screen') stopTracking();
+            }
+
+            window.selectRouteAndShowMap = function(routeId) {
+                currentRouteId = routeId; showScreen('map-screen'); startTracking();
+            }
+
+            async function fetchAndUpdateBusLocation() {
+                if (!currentRouteId) return;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/track/location/${currentRouteId}`);
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const coordinates = data.currentLocation.coordinates;
+                    const startLat = 29.1907, endLat = 29.2500;
+                    const progress = (coordinates[1] - startLat) / (endLat - startLat);
+                    const topPosition = 12 + (progress * 76);
+                    busIcon.style.top = `${Math.max(5, Math.min(95, topPosition))}%`;
+                } catch (error) { stopTracking(); }
+            }
+
+            function startTracking() {
+                stopTracking(); fetchAndUpdateBusLocation();
+                trackingInterval = setInterval(fetchAndUpdateBusLocation, 5000);
+            }
+            function stopTracking() { if (trackingInterval) clearInterval(trackingInterval); trackingInterval = null; }
+            window.changeMapView = function(viewName) {
+                const container = document.querySelector('.map-container');
+                container.classList.remove('view-route', 'view-bus');
+                if (viewName === 'route' || viewName === 'bus') container.classList.add(`view-${viewName}`);
+                document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(`view-${viewName}`).classList.add('active');
+            }
+            
+            // ऐप शुरू होने पर डिफ़ॉल्ट भाषा हिंदी सेट करें
+            setLanguage('hi');
+        });
+    </script>
+</body>
+</html>
